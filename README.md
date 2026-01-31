@@ -8,7 +8,8 @@ Cursor 2-Day AI Hackathon
 ## Features
 
 - **Multimodal Input:** Camera capture with MediaPipe (hand landmarks) + demo gesture simulation
-- **Medical Reasoning:** Gesture tokens → symptom inference → clinical interpretation (MedGemma/GPT4)
+- **Medical Reasoning:** Gesture tokens → symptom inference → clinical interpretation (Rule-based)
+- **Medical Reasoning Enhancement Layer:** Gesture tokens → symptom inference → clinical interpretation (MedGemma + Langchain + GPT4)
 - **Emotional Intelligence:** Pain level, distress, emotion detection (HumeAI)
 - **Doctor Output:** Clinical interpretation with Web Speech TTS, triage badge
 - **Patient Confirmation:** Yes/No visual cards for accessibility
@@ -57,7 +58,7 @@ See [docs/README.md](docs/README.md) for full documentation.
 - **Frontend:** Next.js 16, React 19, Tailwind CSS, Framer Motion
 - **Vision:** MediaPipe Tasks Vision (HandLandmarker)
 - **3D:** Three.js, React Three Fiber, Drei
-- **TTS:** Web Speech API
+- **TTS:** Web Speech API, ElevenLabs
 - **Backend:** PostgreSQL with Prisma, Supabase
 
 ## License
