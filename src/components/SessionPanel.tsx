@@ -12,6 +12,8 @@ import {
   Trash2,
   AlertTriangle,
   Play,
+  Cloud,
+  CloudOff,
 } from "lucide-react";
 import type { GestureState } from "@/lib/types";
 import {
@@ -20,11 +22,16 @@ import {
   formatVoiceSummary,
   exportToPDF,
   playVoiceSummary,
-  saveToHistory,
-  getSessionHistory,
   isEmotionHighAlert,
   type SessionRecord,
 } from "@/lib/automation";
+import { 
+  fetchSessions, 
+  saveSessionToApi, 
+  deleteSessionFromApi,
+  clearAllSessionsFromApi,
+  checkApiHealth,
+} from "@/lib/api";
 import { inferEmotionFromGestures } from "@/lib/emotionLayer";
 import { TRIAGE_LABELS, TRIAGE_COLORS } from "@/lib/triageLogic";
 
@@ -54,10 +61,20 @@ export default function SessionPanel({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
   const [showHighAlert, setShowHighAlert] = useState(false);
+  const [isApiConnected, setIsApiConnected] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Load history on mount
+  // Check API health and load history on mount
   useEffect(() => {
-    setHistory(getSessionHistory());
+    const init = async () => {
+      const healthy = await checkApiHealth();
+      setIsApiConnected(healthy);
+      
+      // Load history from API (falls back to localStorage)
+      const sessions = await fetchSessions();
+      setHistory(sessions);
+    };
+    init();
   }, []);
 
   // Check for high emotion alert
@@ -81,22 +98,30 @@ export default function SessionPanel({
     sessionStart
   );
 
-  // Save to history
-  const handleSaveToHistory = useCallback(() => {
-    if (!currentReport || currentReport.id === lastSavedId) return;
+  // Save to history (uses API with localStorage fallback)
+  const handleSaveToHistory = useCallback(async () => {
+    if (!currentReport || currentReport.id === lastSavedId || isSaving) return;
     
-    saveToHistory(currentReport);
-    setLastSavedId(currentReport.id);
-    setHistory(getSessionHistory());
-  }, [currentReport, lastSavedId]);
+    setIsSaving(true);
+    try {
+      await saveSessionToApi(currentReport);
+      setLastSavedId(currentReport.id);
+      // Refresh history
+      const sessions = await fetchSessions();
+      setHistory(sessions);
+    } catch (error) {
+      console.error("Failed to save session:", error);
+    }
+    setIsSaving(false);
+  }, [currentReport, lastSavedId, isSaving]);
 
   // Export to PDF
-  const handleExportPDF = useCallback(() => {
+  const handleExportPDF = useCallback(async () => {
     if (!currentReport) return;
     
     // Save first if not saved
     if (currentReport.id !== lastSavedId) {
-      handleSaveToHistory();
+      await handleSaveToHistory();
     }
     
     exportToPDF(currentReport);
@@ -112,12 +137,10 @@ export default function SessionPanel({
     setIsSpeaking(false);
   }, [currentReport, isSpeaking]);
 
-  // Clear history
-  const handleClearHistory = useCallback(() => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("signToHealth_history");
-      setHistory([]);
-    }
+  // Clear history (uses API with localStorage fallback)
+  const handleClearHistory = useCallback(async () => {
+    await clearAllSessionsFromApi();
+    setHistory([]);
   }, []);
 
   // Export history record
@@ -156,6 +179,18 @@ export default function SessionPanel({
             <span className="text-sm font-medium text-[var(--text-secondary)]">
               Session Report
             </span>
+            {/* API Connection Status */}
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
+              isApiConnected 
+                ? "bg-green-500/20 text-green-400" 
+                : "bg-amber-500/20 text-amber-400"
+            }`}>
+              {isApiConnected ? (
+                <><Cloud className="h-3 w-3" /> API</>
+              ) : (
+                <><CloudOff className="h-3 w-3" /> Local</>
+              )}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-3 w-3 text-[var(--text-muted)]" />
@@ -175,16 +210,18 @@ export default function SessionPanel({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSaveToHistory}
-              disabled={currentReport.id === lastSavedId}
+              disabled={currentReport.id === lastSavedId || isSaving}
               className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-colors ${
                 currentReport.id === lastSavedId
                   ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]"
+                  : isSaving
+                  ? "border-[var(--text-muted)] bg-[var(--bg-secondary)] text-[var(--text-muted)]"
                   : "border-[var(--border-default)] hover:border-[var(--accent-primary)]/50 hover:bg-[var(--accent-primary)]/5"
               }`}
             >
-              <FileText className="h-5 w-5" />
+              <FileText className={`h-5 w-5 ${isSaving ? "animate-pulse" : ""}`} />
               <span className="text-xs font-medium">
-                {currentReport.id === lastSavedId ? "Saved" : "Save"}
+                {currentReport.id === lastSavedId ? "Saved" : isSaving ? "Saving..." : "Save"}
               </span>
             </motion.button>
 

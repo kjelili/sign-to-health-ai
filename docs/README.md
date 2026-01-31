@@ -16,6 +16,7 @@ Sign-to-Health AI is a real-time medical interpreter that translates sign langua
 | [TRIAGE_RULES.md](TRIAGE_RULES.md) | AI triage patterns and urgency classification |
 | [AUTOMATION.md](AUTOMATION.md) | Workflow automation, PDF export, voice summary |
 | [EXPLAINABILITY.md](EXPLAINABILITY.md) | Knowledge graph and reasoning transparency |
+| [BACKEND.md](BACKEND.md) | API routes, database, settings management |
 
 ## Quick Start
 
@@ -92,6 +93,18 @@ Gesture → Symptom → Diagnosis → Urgency → Department
 - Detailed reasoning steps
 - AI transparency notice
 
+### 9. Backend API
+**Endpoints:**
+- `GET /api/health` - System health and statistics
+- `GET/POST/DELETE /api/sessions` - Session CRUD operations
+- `GET/PUT/DELETE /api/settings` - Settings management
+
+**Features:**
+- File-based JSON storage (upgradable)
+- Automatic localStorage fallback
+- Session statistics and filtering
+- API key management
+
 ## Key Features
 
 ### Reliability
@@ -123,13 +136,15 @@ Gesture → Symptom → Diagnosis → Urgency → Department
 | Layer | Technology |
 |-------|------------|
 | Frontend | Next.js 16, React 19, Tailwind CSS |
+| Backend | Next.js API Routes |
+| Database | File-based JSON (upgradable to PostgreSQL/MongoDB) |
 | Animation | Framer Motion |
 | Icons | Lucide React |
 | Vision | MediaPipe (Hand + Pose Landmarker) |
 | Emotion | Hume AI Expression Measurement API |
 | 3D | Three.js, @react-three/fiber |
 | TTS | Web Speech API (ElevenLabs optional) |
-| Storage | localStorage (session history) |
+| Storage | API + localStorage fallback |
 
 ## Phases Completed
 
@@ -142,10 +157,14 @@ Gesture → Symptom → Diagnosis → Urgency → Department
 | 5 | Explainability + Documentation | ✅ |
 | 6 | Body Tracking + Reliability | ✅ |
 | 7 | Full Automation + PDF Export | ✅ |
+| 8 | Hume AI Emotion Detection | ✅ |
+| 9 | Backend API + Database | ✅ |
 
 ## External References
 
 - [MediaPipe Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker/web_js)
 - [MediaPipe Pose Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker)
+- [Hume AI Expression Measurement](https://dev.hume.ai/docs/expression-measurement/overview)
 - [Three.js Documentation](https://threejs.org/docs/)
 - [React Three Fiber](https://docs.pmnd.rs/react-three-fiber)
+- [Next.js API Routes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
