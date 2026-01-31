@@ -1,11 +1,28 @@
 /**
- * Phase 1: Medical Reasoning Layer (MVP)
+ * Medical Reasoning Layer
+ * 
  * Translates gesture tokens + context into clinical interpretation.
- * In production: MedGemma + OpenAI + LangChain
- * For MVP: Rule-based inference + structured prompts
+ * Uses AI-powered reasoning when available (OpenAI GPT-4, Google Gemini)
+ * with automatic fallback to rule-based inference.
+ * 
+ * Architecture:
+ * 1. AI Mode (when configured): LangChain orchestrates OpenAI + Gemini
+ * 2. Fallback Mode: Rule-based inference with structured prompts
+ * 
+ * Integration:
+ * - OpenAI Service: GPT-4 for clinical reasoning
+ * - Google AI Service: Gemini for medical knowledge
+ * - LangChain Orchestrator: Combines multiple AI sources
+ * 
+ * @see openaiService.ts - OpenAI integration
+ * @see googleAIService.ts - Google Gemini integration
+ * @see langchainOrchestrator.ts - Multi-model orchestration
  */
 
 import type { GestureState } from "./types";
+import { getOrchestrator, type OrchestratedAnalysis } from "./langchainOrchestrator";
+import { getOpenAIService } from "./openaiService";
+import { getGoogleAIService } from "./googleAIService";
 
 // Body region mapping from common pointing gestures
 const BODY_REGIONS: Record<string, string> = {
@@ -328,4 +345,205 @@ export function inferGestureTokensFromHands(
 
   // Remove duplicates
   return [...new Set(tokens)];
+}
+
+// ============================================================================
+// AI-ENHANCED MEDICAL REASONING
+// ============================================================================
+
+/**
+ * Enhanced emotion state for AI reasoning
+ */
+export interface EmotionStateForReasoning {
+  painLevel: number;
+  distress: number;
+  anxiety: number;
+  primaryEmotion: string;
+}
+
+/**
+ * Body state for AI reasoning
+ */
+export interface BodyStateForReasoning {
+  position: string;
+  isEmergency: boolean;
+}
+
+/**
+ * AI-enhanced clinical interpretation result
+ */
+export interface AIEnhancedInterpretation {
+  interpretation: string;
+  urgencyLevel: string;
+  possibleConditions: string[];
+  recommendations: string[];
+  icd10Codes: Array<{ code: string; description: string }>;
+  confidence: number;
+  source: "ai" | "rule-based" | "hybrid";
+  modelsUsed: string[];
+}
+
+/**
+ * Get AI-enhanced clinical interpretation
+ * Uses LangChain orchestrator when available, falls back to rule-based
+ */
+export async function getAIEnhancedInterpretation(
+  gestureState: GestureState | null,
+  emotionState?: EmotionStateForReasoning,
+  bodyState?: BodyStateForReasoning
+): Promise<AIEnhancedInterpretation> {
+  // Get rule-based interpretation as baseline/fallback
+  const ruleBasedInterpretation = inferClinicalInterpretation(gestureState);
+  
+  if (!gestureState || gestureState.gestureTokens.length === 0) {
+    return {
+      interpretation: ruleBasedInterpretation || "No gesture data available for interpretation.",
+      urgencyLevel: "routine",
+      possibleConditions: [],
+      recommendations: ["Continue observation"],
+      icd10Codes: [],
+      confidence: 0.3,
+      source: "rule-based",
+      modelsUsed: ["rule-based"],
+    };
+  }
+
+  const orchestrator = getOrchestrator();
+  
+  // If AI orchestrator is not ready, return rule-based
+  if (!orchestrator.isReady()) {
+    return {
+      interpretation: ruleBasedInterpretation || "Patient communicating via gestures.",
+      urgencyLevel: determineRuleBasedUrgency(gestureState.gestureTokens),
+      possibleConditions: inferConditionsFromTokens(gestureState.gestureTokens),
+      recommendations: ["Complete clinical evaluation recommended"],
+      icd10Codes: [],
+      confidence: 0.5,
+      source: "rule-based",
+      modelsUsed: ["rule-based"],
+    };
+  }
+
+  try {
+    // Use AI orchestrator for enhanced analysis
+    const aiResult: OrchestratedAnalysis = await orchestrator.analyzeWithOrchestration(
+      gestureState.gestureTokens,
+      emotionState,
+      bodyState
+    );
+
+    // Combine AI result with rule-based for best of both
+    return {
+      interpretation: aiResult.interpretation || ruleBasedInterpretation || "Analysis complete.",
+      urgencyLevel: aiResult.consensus.urgencyLevel,
+      possibleConditions: aiResult.combinedConditions,
+      recommendations: aiResult.combinedRecommendations,
+      icd10Codes: aiResult.icd10Codes,
+      confidence: aiResult.consensus.confidence,
+      source: aiResult.source === "orchestrated" ? "ai" : aiResult.source === "single" ? "ai" : "hybrid",
+      modelsUsed: aiResult.modelsUsed,
+    };
+  } catch (error) {
+    console.error("AI reasoning failed, using rule-based:", error);
+    
+    return {
+      interpretation: ruleBasedInterpretation || "Patient communicating via gestures.",
+      urgencyLevel: determineRuleBasedUrgency(gestureState.gestureTokens),
+      possibleConditions: inferConditionsFromTokens(gestureState.gestureTokens),
+      recommendations: ["Complete clinical evaluation recommended"],
+      icd10Codes: [],
+      confidence: 0.5,
+      source: "rule-based",
+      modelsUsed: ["rule-based"],
+    };
+  }
+}
+
+/**
+ * Determine urgency using rule-based logic
+ */
+function determineRuleBasedUrgency(tokens: string[]): string {
+  const lowerTokens = tokens.map(t => t.toLowerCase());
+  
+  if (lowerTokens.some(t => ["fallen", "collapse", "critical", "stroke"].includes(t))) {
+    return "immediate";
+  }
+  if (lowerTokens.some(t => t.includes("chest") && (t.includes("pain") || lowerTokens.includes("pain")))) {
+    return "emergency";
+  }
+  if (lowerTokens.includes("breathing")) {
+    return "emergency";
+  }
+  if (lowerTokens.some(t => t.includes("pain")) || lowerTokens.some(t => t.includes("severe"))) {
+    return "urgent";
+  }
+  
+  return "non-urgent";
+}
+
+/**
+ * Infer possible conditions from gesture tokens
+ */
+function inferConditionsFromTokens(tokens: string[]): string[] {
+  const lowerTokens = tokens.map(t => t.toLowerCase());
+  const conditions: string[] = [];
+  
+  if (lowerTokens.some(t => t.includes("chest"))) {
+    conditions.push("Chest pain - cardiac evaluation recommended");
+  }
+  if (lowerTokens.some(t => t.includes("abdomen") || t.includes("stomach"))) {
+    conditions.push("Abdominal complaint");
+  }
+  if (lowerTokens.some(t => t.includes("head"))) {
+    conditions.push("Headache/Head-related complaint");
+  }
+  if (lowerTokens.some(t => t.includes("breathing"))) {
+    conditions.push("Respiratory complaint");
+  }
+  if (lowerTokens.includes("fallen") || lowerTokens.includes("collapse")) {
+    conditions.push("Fall/Collapse - multiple causes possible");
+  }
+  
+  return conditions.length > 0 ? conditions : ["Requires clinical evaluation"];
+}
+
+/**
+ * Initialize AI services with provided API keys
+ * Call this during app initialization
+ */
+export function initializeAIServices(config: {
+  openaiApiKey?: string;
+  googleApiKey?: string;
+}): void {
+  const orchestrator = getOrchestrator();
+  
+  orchestrator.configure({
+    openaiApiKey: config.openaiApiKey,
+    googleApiKey: config.googleApiKey,
+    enableMultiModel: !!(config.openaiApiKey && config.googleApiKey),
+  });
+  
+  // Also configure individual services for direct access
+  if (config.openaiApiKey) {
+    getOpenAIService().configure(config.openaiApiKey);
+  }
+  if (config.googleApiKey) {
+    getGoogleAIService().configure(config.googleApiKey);
+  }
+  
+  console.log("AI Services initialized:", orchestrator.getAvailableModels());
+}
+
+/**
+ * Check if AI services are available
+ */
+export function isAIAvailable(): boolean {
+  return getOrchestrator().isReady();
+}
+
+/**
+ * Get list of available AI models
+ */
+export function getAvailableAIModels(): string[] {
+  return getOrchestrator().getAvailableModels();
 }

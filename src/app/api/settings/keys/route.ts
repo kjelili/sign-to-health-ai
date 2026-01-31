@@ -22,11 +22,25 @@ export async function GET() {
   try {
     const settings = await getSettings();
 
+    // First check environment variables, then fall back to database settings
+    const keys = {
+      humeApiKey: process.env.NEXT_PUBLIC_HUME_API_KEY || settings.humeApiKey || null,
+      elevenLabsApiKey: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || settings.elevenLabsApiKey || null,
+      openaiApiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY || settings.openaiApiKey || null,
+      googleApiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY || settings.googleApiKey || null,
+      langchainApiKey: process.env.LANGCHAIN_API_KEY || settings.langchainApiKey || null,
+    };
+
     return NextResponse.json({
       success: true,
-      data: {
-        humeApiKey: settings.humeApiKey || null,
-        elevenLabsApiKey: settings.elevenLabsApiKey || null,
+      data: keys,
+      // Indicate which keys are configured (without exposing them)
+      configured: {
+        hume: !!keys.humeApiKey,
+        elevenLabs: !!keys.elevenLabsApiKey,
+        openai: !!keys.openaiApiKey,
+        google: !!keys.googleApiKey,
+        langchain: !!keys.langchainApiKey,
       },
     });
   } catch (error) {

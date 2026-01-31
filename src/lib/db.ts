@@ -24,12 +24,23 @@ const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
  * Application settings
  */
 export interface AppSettings {
+  // AI Service API Keys
   humeApiKey?: string;
   elevenLabsApiKey?: string;
+  openaiApiKey?: string;
+  googleApiKey?: string;
+  langchainApiKey?: string;
+  
+  // Feature toggles
   autoSaveEnabled: boolean;
   voiceSummaryEnabled: boolean;
   emergencyAlertEnabled: boolean;
+  aiReasoningEnabled: boolean;  // Enable AI-powered reasoning
+  
+  // Limits
   maxSessionHistory: number;
+  
+  // Timestamps
   createdAt: number;
   updatedAt: number;
 }
@@ -49,6 +60,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   autoSaveEnabled: true,
   voiceSummaryEnabled: true,
   emergencyAlertEnabled: true,
+  aiReasoningEnabled: true,  // AI reasoning enabled by default (uses fallback if no keys)
   maxSessionHistory: 100,
   createdAt: Date.now(),
   updatedAt: Date.now(),

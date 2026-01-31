@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Hand } from "lucide-react";
+import { ArrowLeft, Hand, Cpu } from "lucide-react";
 import CameraCapture from "@/components/CameraCapture";
 import DoctorOutput from "@/components/DoctorOutput";
 import PatientConfirmation from "@/components/PatientConfirmation";
@@ -12,12 +12,22 @@ import ExplainabilityPanel from "@/components/ExplainabilityPanel";
 import SessionPanel from "@/components/SessionPanel";
 import { isEmergencySituation } from "@/lib/emergencyMode";
 import { getPainRegionFromGestures } from "@/lib/painRegion";
+import { initializeAllAIServices, getActiveAIServicesSummary, type AIInitResult } from "@/lib/aiInitializer";
 import type { GestureState, BodyPoseState } from "@/lib/types";
 
 export default function AppPage() {
   const [gestureState, setGestureState] = useState<GestureState | null>(null);
   const [clinicalInterpretation, setClinicalInterpretation] = useState<string | null>(null);
   const [poseState, setPoseState] = useState<BodyPoseState | null>(null);
+  const [aiStatus, setAiStatus] = useState<AIInitResult | null>(null);
+
+  // Initialize AI services on mount
+  useEffect(() => {
+    initializeAllAIServices().then(result => {
+      setAiStatus(result);
+      console.log("AI Services initialized:", result);
+    });
+  }, []);
 
   const painRegion = useMemo(() => getPainRegionFromGestures(gestureState), [gestureState]);
   
@@ -61,7 +71,17 @@ export default function AppPage() {
                 Sign-to-Health AI
               </span>
             </div>
-            <div className="w-20" /> {/* Spacer for centering */}
+            {/* AI Status indicator */}
+            <div className="flex items-center gap-2">
+              {aiStatus && (
+                <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-default)] text-xs">
+                  <Cpu className={`h-3 w-3 ${aiStatus.services.openai || aiStatus.services.google ? 'text-green-500' : 'text-gray-400'}`} />
+                  <span className="text-[var(--text-secondary)]">
+                    {getActiveAIServicesSummary()}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

@@ -9,6 +9,7 @@ Sign-to-Health AI is a real-time medical interpreter that translates sign langua
 | Document | Description |
 |----------|-------------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture and tech stack |
+| [AI_SERVICES.md](AI_SERVICES.md) | **AI integrations: OpenAI, Google Gemini, LangChain, Hume AI** |
 | [INPUT_LAYER.md](INPUT_LAYER.md) | Camera + MediaPipe configuration, gesture detection |
 | [BODY_TRACKING.md](BODY_TRACKING.md) | Pose landmarker, fall detection, 3D sync |
 | [EMOTIONAL_INTELLIGENCE.md](EMOTIONAL_INTELLIGENCE.md) | Hume AI emotion detection, anger/stress spectrum |
@@ -46,11 +47,13 @@ Open [http://localhost:3001](http://localhost:3001).
 - Stress spectrum: Anxious → Burned out → Overwhelmed
 - Fallback to gesture-based inference when offline
 
-### 3. Medical Reasoning Layer
-- Gesture → Clinical interpretation
-- Body region detection
-- SOAP note generation
-- ICD-10 code suggestions
+### 3. Medical Reasoning Layer (AI-Powered)
+- **OpenAI GPT-4**: Clinical interpretation, SOAP notes, differential diagnosis
+- **Google Gemini**: Medical knowledge, ICD-10 codes, red flag detection
+- **LangChain Orchestrator**: Multi-model consensus, combined recommendations
+- **Rule-based Fallback**: Works without AI keys configured
+- Body region detection from gestures
+- Urgency classification with confidence scores
 
 ### 4. AI Triage Mode
 | Pattern | Output |

@@ -22,6 +22,9 @@ export async function GET() {
       ...settings,
       humeApiKey: settings.humeApiKey ? "***configured***" : undefined,
       elevenLabsApiKey: settings.elevenLabsApiKey ? "***configured***" : undefined,
+      openaiApiKey: settings.openaiApiKey ? "***configured***" : undefined,
+      googleApiKey: settings.googleApiKey ? "***configured***" : undefined,
+      langchainApiKey: settings.langchainApiKey ? "***configured***" : undefined,
     };
 
     return NextResponse.json({
@@ -66,12 +69,26 @@ export async function PUT(request: NextRequest) {
       updates.maxSessionHistory = body.maxSessionHistory;
     }
 
+    // AI reasoning toggle
+    if (typeof body.aiReasoningEnabled === "boolean") {
+      updates.aiReasoningEnabled = body.aiReasoningEnabled;
+    }
+
     // API keys (only update if provided and not the masked value)
     if (body.humeApiKey && body.humeApiKey !== "***configured***") {
       updates.humeApiKey = body.humeApiKey;
     }
     if (body.elevenLabsApiKey && body.elevenLabsApiKey !== "***configured***") {
       updates.elevenLabsApiKey = body.elevenLabsApiKey;
+    }
+    if (body.openaiApiKey && body.openaiApiKey !== "***configured***") {
+      updates.openaiApiKey = body.openaiApiKey;
+    }
+    if (body.googleApiKey && body.googleApiKey !== "***configured***") {
+      updates.googleApiKey = body.googleApiKey;
+    }
+    if (body.langchainApiKey && body.langchainApiKey !== "***configured***") {
+      updates.langchainApiKey = body.langchainApiKey;
     }
 
     const updated = await updateSettings(updates);
@@ -81,6 +98,9 @@ export async function PUT(request: NextRequest) {
       ...updated,
       humeApiKey: updated.humeApiKey ? "***configured***" : undefined,
       elevenLabsApiKey: updated.elevenLabsApiKey ? "***configured***" : undefined,
+      openaiApiKey: updated.openaiApiKey ? "***configured***" : undefined,
+      googleApiKey: updated.googleApiKey ? "***configured***" : undefined,
+      langchainApiKey: updated.langchainApiKey ? "***configured***" : undefined,
     };
 
     return NextResponse.json({

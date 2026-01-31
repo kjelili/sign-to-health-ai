@@ -282,22 +282,38 @@ export async function fetchSettings(): Promise<Partial<AppSettings> | null> {
 }
 
 /**
- * Get API keys (for client-side services)
+ * API keys response type
  */
-export async function fetchApiKeys(): Promise<{
+export interface ApiKeysResponse {
   humeApiKey: string | null;
   elevenLabsApiKey: string | null;
-} | null> {
+  openaiApiKey: string | null;
+  googleApiKey: string | null;
+  langchainApiKey: string | null;
+}
+
+/**
+ * Configured services status
+ */
+export interface ConfiguredServicesStatus {
+  hume: boolean;
+  elevenLabs: boolean;
+  openai: boolean;
+  google: boolean;
+  langchain: boolean;
+}
+
+/**
+ * Get API keys (for client-side services)
+ */
+export async function fetchApiKeys(): Promise<ApiKeysResponse | null> {
   try {
     const response = await fetch(`${API_BASE}/settings/keys`, {
       method: "GET",
       cache: "no-store",
     });
 
-    const data: ApiResponse<{
-      humeApiKey: string | null;
-      elevenLabsApiKey: string | null;
-    }> = await response.json();
+    const data: ApiResponse<ApiKeysResponse> & { configured?: ConfiguredServicesStatus } = await response.json();
 
     if (data.success && data.data) {
       return data.data;
@@ -305,8 +321,44 @@ export async function fetchApiKeys(): Promise<{
 
     return null;
   } catch {
-    return null;
+    // Fallback to environment variables if API fails
+    return {
+      humeApiKey: process.env.NEXT_PUBLIC_HUME_API_KEY || null,
+      elevenLabsApiKey: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || null,
+      openaiApiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY || null,
+      googleApiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY || null,
+      langchainApiKey: null, // Not exposed client-side
+    };
   }
+}
+
+/**
+ * Check which services are configured
+ */
+export async function getConfiguredServices(): Promise<ConfiguredServicesStatus> {
+  try {
+    const response = await fetch(`${API_BASE}/settings/keys`, {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    const data = await response.json();
+    
+    if (data.success && data.configured) {
+      return data.configured;
+    }
+  } catch {
+    // Ignore errors
+  }
+
+  // Fallback - check environment variables
+  return {
+    hume: !!process.env.NEXT_PUBLIC_HUME_API_KEY,
+    elevenLabs: !!process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY,
+    openai: !!process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+    google: !!process.env.NEXT_PUBLIC_GOOGLE_API_KEY,
+    langchain: false,
+  };
 }
 
 /**

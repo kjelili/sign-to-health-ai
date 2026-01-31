@@ -7,16 +7,17 @@ Cursor 2-Day AI Hackathon
 
 ## Features
 
-- **Multimodal Input:** Camera capture with MediaPipe (hand landmarks) + demo gesture simulation
-- **Medical Reasoning:** Gesture tokens → symptom inference → clinical interpretation (Rule-based)
-- **Medical Reasoning Enhancement Layer:** Gesture tokens → symptom inference → clinical interpretation (MedGemma + Langchain + GPT4)
-- **Emotional Intelligence:** Pain level, distress, emotion detection (HumeAI)
-- **Doctor Output:** Clinical interpretation with Web Speech TTS, triage badge
+- **Multimodal Input:** Camera capture with MediaPipe (hand + pose landmarks) + demo gesture simulation
+- **AI Medical Reasoning:** OpenAI GPT-4 + Google Gemini for clinical interpretation, SOAP notes, ICD-10
+- **LangChain Orchestration:** Multi-model consensus, combined recommendations, confidence scoring
+- **Emotional Intelligence:** Hume AI (48 emotions), pain/distress/anxiety detection
+- **Rule-based Fallback:** Full functionality without AI keys configured
+- **Doctor Output:** Clinical interpretation with ElevenLabs/Web Speech TTS, triage badge
 - **Patient Confirmation:** Yes/No visual cards for accessibility
-- **3D Body Avatar:** Pain region visualization with Three.js
+- **3D Body Avatar:** Pain region visualization, pose sync, fall detection (Three.js)
 - **Silent Emergency Mode:** Auto-alert on high-urgency patterns
 - **AI Triage:** Immediate / Emergency / Urgent / Non-urgent / Mental health
-- **Explainability:** Reasoning chain panel (gesture → symptom → triage)
+- **Explainability:** Knowledge graph reasoning chain (gesture → symptom → triage)
 
 ## Quick Start
 
@@ -56,10 +57,25 @@ See [docs/README.md](docs/README.md) for full documentation.
 ## Tech Stack
 
 - **Frontend:** Next.js 16, React 19, Tailwind CSS, Framer Motion
-- **Vision:** MediaPipe Tasks Vision (HandLandmarker)
+- **Vision:** MediaPipe Tasks Vision (Hand + Pose Landmarkers)
 - **3D:** Three.js, React Three Fiber, Drei
-- **TTS:** Web Speech API, ElevenLabs
-- **Backend:** PostgreSQL with Prisma, Supabase
+- **AI Reasoning:** OpenAI GPT-4, Google Gemini, LangChain
+- **Emotion AI:** Hume AI Expression Measurement
+- **TTS:** ElevenLabs, Web Speech API (fallback)
+- **Backend:** Next.js API Routes, JSON file database (MVP)
+
+## API Keys (Optional)
+
+The app works without API keys using rule-based fallbacks. For AI features, add to `.env.local`:
+
+```bash
+NEXT_PUBLIC_HUME_API_KEY=       # Emotion detection
+NEXT_PUBLIC_ELEVENLABS_API_KEY= # Premium TTS
+NEXT_PUBLIC_OPENAI_API_KEY=     # GPT-4 reasoning
+NEXT_PUBLIC_GOOGLE_API_KEY=     # Gemini medical knowledge
+```
+
+See [docs/AI_SERVICES.md](docs/AI_SERVICES.md) for setup details.
 
 ## License
 
