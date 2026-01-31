@@ -1,3 +1,5 @@
+<img width="1761" height="1725" alt="image" src="https://github.com/user-attachments/assets/32c8d770-3492-459d-a339-e5eb37bd85b8" />
+
 # Sign-to-Health AI
 
 **Real-time medical interpreter** that translates sign language, gestures, facial expressions, and emotional signals into structured clinical understanding for doctors — giving Deaf and non-verbal patients a voice in healthcare.
