@@ -7,7 +7,10 @@
     "dev:3000": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "commit": "node scripts/auto-commit.js --once",
+    "commit:push": "npm run commit && git push",
+    "auto-commit": "node scripts/auto-commit.js"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.32",

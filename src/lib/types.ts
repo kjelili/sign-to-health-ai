@@ -84,11 +84,39 @@ export interface GestureState {
   poseState?: BodyPoseState;
 }
 
+/**
+ * Basic emotion state (legacy format)
+ */
 export interface EmotionState {
   painLevel: number;
   distress: number;
   emotion: string;
   confidence: number;
+}
+
+/**
+ * Extended emotion state from Hume AI
+ * Provides comprehensive emotional analysis for medical context
+ */
+export interface ExtendedEmotionState extends EmotionState {
+  // Additional emotion metrics (0-1 scale)
+  anxiety: number;
+  confusion: number;
+  anger: number;
+  
+  // Medical category
+  category: "pain" | "anxiety" | "confusion" | "anger" | "stress" | "positive" | "neutral";
+  categoryLabel: string;
+  
+  // Top emotions detected
+  topEmotions: Array<{ name: string; score: number }>;
+  
+  // Source of detection
+  source: "hume" | "fallback" | "gesture";
+  
+  // Detailed labels for specific conditions
+  angerSpectrum?: string;  // e.g., "Frustrated", "Hostile", "Furious"
+  stressSpectrum?: string; // e.g., "Anxious", "Overwhelmed", "Burned out"
 }
 
 export type PainRegion = "head" | "chest" | "abdomen" | "lower-right" | "lower-left" | null;

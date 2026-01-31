@@ -11,6 +11,7 @@ Sign-to-Health AI is a real-time medical interpreter that translates sign langua
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture and tech stack |
 | [INPUT_LAYER.md](INPUT_LAYER.md) | Camera + MediaPipe configuration, gesture detection |
 | [BODY_TRACKING.md](BODY_TRACKING.md) | Pose landmarker, fall detection, 3D sync |
+| [EMOTIONAL_INTELLIGENCE.md](EMOTIONAL_INTELLIGENCE.md) | Hume AI emotion detection, anger/stress spectrum |
 | [CLINICAL_OUTPUT.md](CLINICAL_OUTPUT.md) | SOAP notes and ICD-10 code generation |
 | [TRIAGE_RULES.md](TRIAGE_RULES.md) | AI triage patterns and urgency classification |
 | [AUTOMATION.md](AUTOMATION.md) | Workflow automation, PDF export, voice summary |
@@ -34,10 +35,15 @@ Open [http://localhost:3001](http://localhost:3001).
 - **Pose Landmarker**: 33 body landmarks
 - **Gesture Smoothing**: Debouncing and stability checks
 
-### 2. Emotional Intelligence Layer
+### 2. Emotional Intelligence Layer (Hume AI)
+- **48 facial expressions** detected via Hume AI
 - Pain level detection (0-100%)
 - Distress level detection (0-100%)
-- Emotion classification (neutral, anxious, distressed)
+- Anxiety level detection (0-100%)
+- Confusion/disorientation detection
+- Anger spectrum: Agitated → Frustrated → Hostile → Furious
+- Stress spectrum: Anxious → Burned out → Overwhelmed
+- Fallback to gesture-based inference when offline
 
 ### 3. Medical Reasoning Layer
 - Gesture → Clinical interpretation
@@ -120,6 +126,7 @@ Gesture → Symptom → Diagnosis → Urgency → Department
 | Animation | Framer Motion |
 | Icons | Lucide React |
 | Vision | MediaPipe (Hand + Pose Landmarker) |
+| Emotion | Hume AI Expression Measurement API |
 | 3D | Three.js, @react-three/fiber |
 | TTS | Web Speech API (ElevenLabs optional) |
 | Storage | localStorage (session history) |

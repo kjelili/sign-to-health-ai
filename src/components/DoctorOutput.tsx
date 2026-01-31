@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, VolumeX, FileText, Heart, ClipboardList, Tag, ChevronDown, ChevronUp } from "lucide-react";
-import { inferEmotionFromGestures } from "@/lib/emotionLayer";
+import { Volume2, VolumeX, FileText, Heart, ClipboardList, Tag, ChevronDown, ChevronUp, Brain } from "lucide-react";
+import { inferEmotionFromGestures, getExtendedEmotionState, getEmotionUrgency } from "@/lib/emotionLayer";
 import { inferTriageUrgency } from "@/lib/triageLogic";
 import { generateSOAPNote, getICD10Codes } from "@/lib/clinicalOutput";
 import TriageBadge from "./TriageBadge";
@@ -19,6 +19,8 @@ export default function DoctorOutput({
   clinicalInterpretation,
 }: Props) {
   const emotion = inferEmotionFromGestures(gestureState);
+  const extendedEmotion = getExtendedEmotionState(gestureState);
+  const emotionUrgency = getEmotionUrgency(extendedEmotion);
   const triageUrgency = inferTriageUrgency(gestureState, clinicalInterpretation);
   const soapNote = generateSOAPNote(gestureState, clinicalInterpretation, emotion);
   const icd10Codes = gestureState ? getICD10Codes(gestureState.gestureTokens) : [];
@@ -97,19 +99,126 @@ export default function DoctorOutput({
               </motion.div>
             )}
             
-            {/* Emotion Detection */}
-            {emotion && (emotion.painLevel > 0 || emotion.distress > 0) && (
+            {/* Emotion Detection (Hume AI Enhanced) */}
+            {extendedEmotion && (extendedEmotion.painLevel > 0 || extendedEmotion.distress > 0 || extendedEmotion.source === "hume") && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 rounded-xl bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/20 px-4 py-3 backdrop-blur-sm"
+                className={`rounded-xl border px-4 py-3 backdrop-blur-sm ${
+                  emotionUrgency === "critical" || emotionUrgency === "high"
+                    ? "bg-red-500/10 border-red-500/30"
+                    : "bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/20"
+                }`}
               >
-                <Heart className="h-4 w-4 text-[var(--accent-primary)]" />
-                <span className="text-sm text-[var(--text-secondary)]">
-                  Detected: {emotion.emotion}
-                  {emotion.painLevel > 0 && ` • Pain ${Math.round(emotion.painLevel * 100)}%`}
-                  {emotion.distress > 0 && ` • Distress ${Math.round(emotion.distress * 100)}%`}
-                </span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Heart className={`h-4 w-4 ${
+                      emotionUrgency === "critical" || emotionUrgency === "high"
+                        ? "text-red-500"
+                        : "text-[var(--accent-primary)]"
+                    }`} />
+                    <span className="font-medium text-sm">Emotional State</span>
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    extendedEmotion.source === "hume"
+                      ? "bg-purple-500/20 text-purple-400"
+                      : "bg-[var(--text-muted)]/20 text-[var(--text-muted)]"
+                  }`}>
+                    {extendedEmotion.source === "hume" ? "Hume AI" : "Gesture inference"}
+                  </span>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+                    <span className="text-sm text-[var(--text-secondary)]">
+                      <strong>{extendedEmotion.categoryLabel}</strong>
+                      {extendedEmotion.angerSpectrum && ` (${extendedEmotion.angerSpectrum})`}
+                      {extendedEmotion.stressSpectrum && ` (${extendedEmotion.stressSpectrum})`}
+                    </span>
+                  </div>
+                  
+                  {/* Metrics bars */}
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {extendedEmotion.painLevel > 0 && (
+                      <div>
+                        <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1">
+                          <span>Pain</span>
+                          <span>{Math.round(extendedEmotion.painLevel * 100)}%</span>
+                        </div>
+                        <div className="h-1.5 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${extendedEmotion.painLevel * 100}%` }}
+                            className="h-full bg-red-500 rounded-full"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {extendedEmotion.distress > 0 && (
+                      <div>
+                        <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1">
+                          <span>Distress</span>
+                          <span>{Math.round(extendedEmotion.distress * 100)}%</span>
+                        </div>
+                        <div className="h-1.5 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${extendedEmotion.distress * 100}%` }}
+                            className="h-full bg-orange-500 rounded-full"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {extendedEmotion.anxiety > 0.2 && (
+                      <div>
+                        <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1">
+                          <span>Anxiety</span>
+                          <span>{Math.round(extendedEmotion.anxiety * 100)}%</span>
+                        </div>
+                        <div className="h-1.5 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${extendedEmotion.anxiety * 100}%` }}
+                            className="h-full bg-purple-500 rounded-full"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {extendedEmotion.confusion > 0.2 && (
+                      <div>
+                        <div className="flex justify-between text-xs text-[var(--text-muted)] mb-1">
+                          <span>Confusion</span>
+                          <span>{Math.round(extendedEmotion.confusion * 100)}%</span>
+                        </div>
+                        <div className="h-1.5 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${extendedEmotion.confusion * 100}%` }}
+                            className="h-full bg-amber-500 rounded-full"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Top emotions from Hume AI */}
+                  {extendedEmotion.topEmotions.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-[var(--border-default)]/50">
+                      <p className="text-xs text-[var(--text-muted)] mb-1">Detected expressions:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {extendedEmotion.topEmotions.slice(0, 5).map((e, i) => (
+                          <span
+                            key={i}
+                            className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
+                          >
+                            {e.name} {Math.round(e.score * 100)}%
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             )}
             

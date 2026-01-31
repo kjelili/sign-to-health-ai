@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Video, VideoOff, Loader2, Camera, Activity, User } from "lucide-react";
+import { Video, VideoOff, Loader2, Camera, Activity, User, Heart } from "lucide-react";
 import { inferGestureTokensFromHands, inferClinicalInterpretation } from "@/lib/medicalReasoning";
 import { analyzeBodyState, getFallEmergencyTokens } from "@/lib/poseDetection";
+import { setHumeEmotionState } from "@/lib/emotionLayer";
+import { getHumeService, captureFrameAsBase64, type ProcessedEmotionResult } from "@/lib/humeService";
 import type { GestureState, BodyPoseState, Landmark } from "@/lib/types";
 
 // MediaPipe model URLs
@@ -75,6 +77,11 @@ export default function CameraCapture({ onGestureUpdate, onInterpretation, onPos
   const [debugInfo, setDebugInfo] = useState<string>("");
   const [confidence, setConfidence] = useState<number>(0);
   const [fps, setFps] = useState<number>(0);
+  
+  // Hume AI emotion detection state
+  const [humeStatus, setHumeStatus] = useState<string>("Not connected");
+  const [emotionResult, setEmotionResult] = useState<ProcessedEmotionResult | null>(null);
+  const humeFrameCountRef = useRef<number>(0);
   
   const handLandmarkerRef = useRef<unknown>(null);
   const poseLandmarkerRef = useRef<unknown>(null);
@@ -166,6 +173,71 @@ export default function CameraCapture({ onGestureUpdate, onInterpretation, onPos
       cancelled = true;
     };
   }, []);
+
+  // Initialize Hume AI service
+  useEffect(() => {
+    const humeService = getHumeService();
+    
+    // Check for API key in environment or localStorage
+    const apiKey = typeof window !== "undefined" 
+      ? localStorage.getItem("humeApiKey") || process.env.NEXT_PUBLIC_HUME_API_KEY 
+      : null;
+    
+    if (apiKey) {
+      humeService.configure(apiKey);
+      
+      humeService.onStatus((status) => {
+        setHumeStatus(status);
+      });
+      
+      humeService.onResult((result) => {
+        setEmotionResult(result);
+        setHumeEmotionState(result);
+      });
+      
+      humeService.onError((error) => {
+        console.error("Hume AI error:", error);
+        setHumeStatus("Error - using fallback");
+      });
+      
+      // Connect to Hume AI
+      humeService.connect();
+    } else {
+      setHumeStatus("No API key - using gesture inference");
+    }
+    
+    return () => {
+      humeService.disconnect();
+    };
+  }, []);
+
+  // Send frames to Hume AI for emotion analysis
+  useEffect(() => {
+    if (cameraState !== "active" || !videoReady) return;
+    
+    const video = videoRef.current;
+    if (!video) return;
+    
+    const humeService = getHumeService();
+    if (!humeService.isConfigured()) return;
+    
+    // Send a frame every 500ms (2 FPS for emotion analysis)
+    const interval = setInterval(() => {
+      humeFrameCountRef.current++;
+      
+      // Only send every 15th frame (approximately every 500ms at 30fps)
+      if (humeFrameCountRef.current % 15 !== 0) return;
+      
+      const frameData = captureFrameAsBase64(video);
+      if (frameData) {
+        humeService.analyzeFrame(frameData);
+      }
+    }, 33); // Check every frame (~30fps)
+    
+    return () => {
+      clearInterval(interval);
+    };
+  }, [cameraState, videoReady]);
 
   const handleVideoCanPlay = useCallback(() => {
     const video = videoRef.current;
@@ -690,6 +762,63 @@ export default function CameraCapture({ onGestureUpdate, onInterpretation, onPos
                     />
                   </div>
                 </motion.div>
+              )}
+              
+              {/* Emotion detected (Hume AI) */}
+              {emotionResult && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className={`rounded-lg backdrop-blur-sm px-2.5 py-1.5 ${
+                    emotionResult.painLevel > 0.5 || emotionResult.distress > 0.5
+                      ? "bg-red-500/90"
+                      : "bg-pink-500/90"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                    <Heart className="h-3 w-3" />
+                    {emotionResult.categoryLabel}
+                  </div>
+                  {emotionResult.painLevel > 0.2 && (
+                    <div className="mt-1 text-[10px] text-white/80">
+                      Pain: {Math.round(emotionResult.painLevel * 100)}%
+                    </div>
+                  )}
+                  {emotionResult.distress > 0.2 && (
+                    <div className="text-[10px] text-white/80">
+                      Distress: {Math.round(emotionResult.distress * 100)}%
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </div>
+            
+            {/* Hume AI status - top right */}
+            <div className="absolute top-3 right-12 flex flex-col items-end gap-1.5">
+              <div className={`rounded-lg backdrop-blur-sm px-2.5 py-1.5 text-xs font-medium ${
+                humeStatus.includes("Connected") 
+                  ? "bg-green-500/80 text-white"
+                  : humeStatus.includes("Error") || humeStatus.includes("Not")
+                  ? "bg-amber-500/80 text-white"
+                  : "bg-black/60 text-gray-300"
+              }`}>
+                <div className="flex items-center gap-1.5">
+                  <Heart className="h-3 w-3" />
+                  <span className="max-w-[100px] truncate">{humeStatus}</span>
+                </div>
+              </div>
+              
+              {/* Top emotions preview */}
+              {emotionResult && emotionResult.topEmotions.length > 0 && (
+                <div className="rounded-lg bg-black/60 backdrop-blur-sm px-2.5 py-1.5">
+                  <div className="text-[10px] text-gray-400 mb-1">Top emotions</div>
+                  {emotionResult.topEmotions.slice(0, 3).map((e, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2 text-[10px]">
+                      <span className="text-white/80 truncate max-w-[70px]">{e.name}</span>
+                      <span className="text-[var(--accent-primary)]">{Math.round(e.score * 100)}%</span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
             
