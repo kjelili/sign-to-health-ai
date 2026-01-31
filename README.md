@@ -1,3 +1,4 @@
+Cursor 2-Day AI Hackathon
 <img width="1761" height="1725" alt="image" src="https://github.com/user-attachments/assets/32c8d770-3492-459d-a339-e5eb37bd85b8" />
 
 # Sign-to-Health AI
