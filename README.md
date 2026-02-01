@@ -14,7 +14,7 @@ Cursor 2-Day AI Hackathon
 - **Rule-based Fallback:** Full functionality without AI keys configured
 - **Doctor Output:** Clinical interpretation with ElevenLabs/Web Speech TTS, triage badge
 - **Patient Confirmation:** Yes/No visual cards for accessibility
-- **3D Body Avatar:** Pain region visualization, pose sync, fall detection (Three.js)
+- **3D Avatar:** Primitive geometry humanoid (spheres, cylinders, capsules) with pose sync, pain highlighting, fall detection
 - **Silent Emergency Mode:** Auto-alert on high-urgency patterns
 - **AI Triage:** Immediate / Emergency / Urgent / Non-urgent / Mental health
 - **Explainability:** Knowledge graph reasoning chain (gesture → symptom → triage)

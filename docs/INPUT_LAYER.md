@@ -20,10 +20,11 @@ Reference: [MDN Media Capture Constraints](https://developer.mozilla.org/en-US/d
 ```typescript
 const CAMERA_CONSTRAINTS: MediaStreamConstraints = {
   video: {
-    width: { ideal: 640, min: 480 },
-    height: { ideal: 480, min: 360 },
-    frameRate: { ideal: 30, min: 15 }, // 30fps for smooth tracking
+    width: { ideal: 1280, min: 640 },      // Higher resolution for better detection
+    height: { ideal: 720, min: 480 },      // 16:9 aspect captures more body
+    frameRate: { ideal: 30, min: 15 },     // 30fps for smooth tracking
     facingMode: "user",
+    aspectRatio: { ideal: 16 / 9 },        // Wide view for full body
   },
   audio: false,
 };
@@ -33,10 +34,11 @@ const CAMERA_CONSTRAINTS: MediaStreamConstraints = {
 
 | Setting | Value | Rationale |
 |---------|-------|-----------|
-| Width | 640px | Balanced resolution for MediaPipe; higher than needed reduces performance |
-| Height | 480px | 4:3 aspect ratio works well for hand detection |
+| Width | 1280px | Higher resolution improves landmark detection accuracy |
+| Height | 720px | 16:9 aspect ratio captures more of the body |
 | Frame Rate | 30fps | Smooth tracking; MediaPipe processes each frame in VIDEO mode |
 | Facing Mode | user | Front camera for self-facing gestures |
+| Aspect Ratio | 16:9 | Wider field of view for full body tracking |
 
 ## MediaPipe Configuration
 
@@ -44,10 +46,18 @@ Reference: [MediaPipe Hand Landmarker Web Guide](https://ai.google.dev/edge/medi
 
 ```typescript
 const MEDIAPIPE_CONFIG = {
-  minHandDetectionConfidence: 0.5,  // Palm detection threshold
-  minHandPresenceConfidence: 0.5,   // Re-detection trigger threshold
-  minTrackingConfidence: 0.5,       // Hand tracking IoU threshold
-  numHands: 2,
+  hand: {
+    minHandDetectionConfidence: 0.35,   // Lower for better sensitivity
+    minHandPresenceConfidence: 0.35,    // Re-detection trigger threshold
+    minTrackingConfidence: 0.35,        // Hand tracking IoU threshold
+    numHands: 2,
+  },
+  pose: {
+    minPoseDetectionConfidence: 0.4,    // Body detection threshold
+    minPosePresenceConfidence: 0.4,     // Re-detection trigger
+    minTrackingConfidence: 0.4,         // Pose tracking threshold
+    numPoses: 1,
+  },
 };
 ```
 
@@ -55,11 +65,12 @@ const MEDIAPIPE_CONFIG = {
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `minHandDetectionConfidence` | 0.5 | Minimum score for palm detection to succeed |
-| `minHandPresenceConfidence` | 0.5 | Below this, triggers palm re-detection instead of tracking |
-| `minTrackingConfidence` | 0.5 | IoU threshold between frames for continuous tracking |
+| `minHandDetectionConfidence` | 0.35 | Lower threshold for better detection sensitivity |
+| `minHandPresenceConfidence` | 0.35 | Maintains tracking even with partial occlusion |
+| `minTrackingConfidence` | 0.35 | IoU threshold between frames for continuous tracking |
+| `minPoseDetectionConfidence` | 0.4 | Body detection threshold |
 
-**Note:** Lower values (e.g., 0.3) increase detection in low-light but may increase false positives. Use 0.5 for balanced reliability.
+**Note:** Thresholds lowered from 0.5 to improve detection in various lighting conditions. May increase false positives in very noisy environments.
 
 ### Delegate Selection
 

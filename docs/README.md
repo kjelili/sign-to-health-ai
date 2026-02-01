@@ -11,7 +11,7 @@ Sign-to-Health AI is a real-time medical interpreter that translates sign langua
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture and tech stack |
 | [AI_SERVICES.md](AI_SERVICES.md) | **AI integrations: OpenAI, Google Gemini, LangChain, Hume AI** |
 | [INPUT_LAYER.md](INPUT_LAYER.md) | Camera + MediaPipe configuration, gesture detection |
-| [BODY_TRACKING.md](BODY_TRACKING.md) | Pose landmarker, fall detection, 3D sync |
+| [BODY_TRACKING.md](BODY_TRACKING.md) | **Pose landmarker, 3D avatar, fall detection** |
 | [EMOTIONAL_INTELLIGENCE.md](EMOTIONAL_INTELLIGENCE.md) | Hume AI emotion detection, anger/stress spectrum |
 | [CLINICAL_OUTPUT.md](CLINICAL_OUTPUT.md) | SOAP notes and ICD-10 code generation |
 | [TRIAGE_RULES.md](TRIAGE_RULES.md) | AI triage patterns and urgency classification |
@@ -77,11 +77,13 @@ Open [http://localhost:3001](http://localhost:3001).
 - Large icons (Yes ✓ / No ✗)
 - No reading required
 
-### 6. 3D Body Avatar
-- Real-time pose synchronization
-- Pain region highlighting
-- Fall detection visualization
-- Emergency particles effect
+### 6. 3D Body Avatar (Primitive Geometries)
+- **Programmatic humanoid avatar** using spheres, cylinders, capsules
+- **Real-time pose tracking** via MediaPipe landmarks
+- **Pain region highlighting** with emissive glow effects
+- **Fall detection visualization** with body rotation animation
+- **Emergency particles effect** and pulsing border glow
+- Static mode with floating animation when no pose data
 
 ### 7. Automation Layer
 **Workflow:**

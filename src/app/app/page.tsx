@@ -98,9 +98,10 @@ export default function AppPage() {
                 />
                 
                 {/* 3D Avatar - shows beneath camera on left side */}
+                {/* Primitive geometry 3D Avatar with pose tracking */}
                 <div className="hidden lg:block">
                   <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-elevated)] overflow-hidden">
-                    <div className="h-[350px]">
+                    <div className="h-[400px]">
                       <BodyAvatar3D
                         painRegion={painRegion}
                         isEmergency={isEmergency}
@@ -127,10 +128,10 @@ export default function AppPage() {
                   clinicalInterpretation={clinicalInterpretation}
                 />
                 
-                {/* 3D Avatar - shows on right for mobile */}
+                {/* Primitive geometry 3D Avatar - mobile view */}
                 <div className="lg:hidden">
                   <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-elevated)] overflow-hidden">
-                    <div className="h-[300px]">
+                    <div className="h-[350px]">
                       <BodyAvatar3D
                         painRegion={painRegion}
                         isEmergency={isEmergency}

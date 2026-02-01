@@ -50,10 +50,20 @@ export interface Landmark {
 
 /**
  * Body pose state for 3D avatar synchronization
+ * 
+ * MediaPipe provides two types of landmarks:
+ * - landmarks: Normalized 2D coordinates (x, y in 0-1 range, z is depth)
+ * - worldLandmarks: 3D world coordinates (origin at hip midpoint, in meters)
+ * 
+ * Kalidokit requires BOTH for accurate pose solving:
+ * - First param: worldLandmarks (3D world coordinates)
+ * - Second param: landmarks (normalized 2D coordinates)
  */
 export interface BodyPoseState {
-  // Raw landmarks (33 points for pose)
+  // Normalized landmarks (33 points, x/y in 0-1 range)
   poseLandmarks: Landmark[] | null;
+  // World landmarks (33 points, 3D world coordinates in meters, origin at hip)
+  worldLandmarks: Landmark[] | null;
   // Left hand landmarks (21 points)
   leftHandLandmarks: Landmark[] | null;
   // Right hand landmarks (21 points)

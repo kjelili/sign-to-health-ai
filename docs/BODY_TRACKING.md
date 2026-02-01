@@ -2,19 +2,28 @@
 
 ## Overview
 
-The system now supports full body pose tracking using MediaPipe Pose Landmarker in addition to hand tracking. This enables:
+The system supports full body pose tracking using MediaPipe Pose Landmarker combined with Kalidokit for accurate 3D avatar bone rotation. This enables:
 
-1. **Real-time 3D avatar synchronization** - The avatar mirrors user movements
+1. **Real-time 3D avatar synchronization** - The avatar mirrors user movements using bone rotation
 2. **Fall/collapse detection** - Automatic emergency alerts when falls are detected
 3. **Body position analysis** - Standing, sitting, crouching, fallen states
+4. **Hand tracking** - Detailed hand landmark detection for gesture recognition
+
+## Architecture
+
+```
+Camera → MediaPipe → [landmarks, worldLandmarks] → Kalidokit → Bone Rotations → 3D Avatar
+                  ↓
+            [handLandmarks] → Gesture Recognition → Clinical Interpretation
+```
 
 ## Components
 
 ### CameraCapture.tsx
 
-Now initializes both:
-- **HandLandmarker** - 21 landmarks per hand
-- **PoseLandmarker** - 33 body landmarks
+Initializes both trackers with optimized settings:
+- **HandLandmarker** - 21 landmarks per hand (detection confidence: 0.35)
+- **PoseLandmarker** - 33 body landmarks + 33 world landmarks
 
 ```typescript
 // Both models are loaded with GPU fallback to CPU
@@ -25,17 +34,24 @@ const poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
   },
   numPoses: 1,
   runningMode: "VIDEO",
-  minPoseDetectionConfidence: 0.5,
-  minPosePresenceConfidence: 0.5,
-  minTrackingConfidence: 0.5,
+  minPoseDetectionConfidence: 0.4,  // Optimized for sensitivity
+  minPosePresenceConfidence: 0.4,
+  minTrackingConfidence: 0.4,
 });
 ```
+
+**Important**: MediaPipe provides TWO types of landmarks:
+- `landmarks` - Normalized 2D coordinates (x, y in 0-1 range, z is relative depth)
+- `worldLandmarks` - 3D world coordinates (in meters, origin at hip midpoint)
+
+Both are required for accurate 3D pose solving with Kalidokit.
 
 ### BodyPoseState Type
 
 ```typescript
 interface BodyPoseState {
-  poseLandmarks: Landmark[] | null;  // 33 body landmarks
+  poseLandmarks: Landmark[] | null;      // 33 normalized landmarks (0-1)
+  worldLandmarks: Landmark[] | null;     // 33 world landmarks (3D meters)
   leftHandLandmarks: Landmark[] | null;  // 21 hand landmarks
   rightHandLandmarks: Landmark[] | null;
   bodyState: {
@@ -51,6 +67,37 @@ interface BodyPoseState {
   timestamp: number;
 }
 ```
+
+## Kalidokit Integration
+
+[Kalidokit](https://github.com/yeemachine/kalidokit) converts MediaPipe landmarks into bone rotation data for 3D avatars.
+
+### Usage
+
+```typescript
+import * as Kalidokit from "kalidokit";
+
+// CRITICAL: Pass worldLandmarks first, then normalized landmarks
+const poseRig = Kalidokit.Pose.solve(worldLandmarks, normalizedLandmarks, {
+  runtime: "mediapipe",
+  enableLegs: true,
+});
+
+// poseRig contains rotation data for each bone:
+// - Hips: { rotation: { x, y, z }, position: { x, y, z } }
+// - Spine: { x, y, z }
+// - LeftUpperArm: { x, y, z }
+// - LeftLowerArm: { x, y, z }
+// - RightUpperArm: { x, y, z }
+// - RightLowerArm: { x, y, z }
+// etc.
+```
+
+### Common Issues
+
+1. **Avatar not moving**: Ensure `worldLandmarks` are captured and passed to Kalidokit
+2. **Jittery movement**: Apply smoothing with lerp (0.1-0.15 factor)
+3. **Wrong bone names**: Map Kalidokit output to your avatar's bone names
 
 ### poseDetection.ts
 

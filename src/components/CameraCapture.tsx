@@ -15,29 +15,30 @@ const HAND_LANDMARKER_MODEL =
 const POSE_LANDMARKER_MODEL =
   "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task";
 
-// Camera constraints optimized for body tracking
+// Camera constraints optimized for full body and hand tracking
 const CAMERA_CONSTRAINTS: MediaStreamConstraints = {
   video: {
-    width: { ideal: 640, min: 480 },
-    height: { ideal: 480, min: 360 },
+    width: { ideal: 1280, min: 640 },
+    height: { ideal: 720, min: 480 },
     frameRate: { ideal: 30, min: 15 },
     facingMode: "user",
+    aspectRatio: { ideal: 16 / 9 },
   },
   audio: false,
 };
 
-// MediaPipe configuration
+// MediaPipe configuration - lower thresholds for better detection sensitivity
 const MEDIAPIPE_CONFIG = {
   hand: {
-    minHandDetectionConfidence: 0.5,
-    minHandPresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5,
+    minHandDetectionConfidence: 0.35,
+    minHandPresenceConfidence: 0.35,
+    minTrackingConfidence: 0.35,
     numHands: 2,
   },
   pose: {
-    minPoseDetectionConfidence: 0.5,
-    minPosePresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5,
+    minPoseDetectionConfidence: 0.4,
+    minPosePresenceConfidence: 0.4,
+    minTrackingConfidence: 0.4,
     numPoses: 1,
   },
 };
@@ -280,7 +281,7 @@ export default function CameraCapture({ onGestureUpdate, onInterpretation, onPos
       const poseDetector = poseLandmarkerRef.current as {
         detectForVideo?: (v: HTMLVideoElement, t: number) => { 
           landmarks: Array<Array<{ x: number; y: number; z?: number; visibility?: number }>>;
-          worldLandmarks?: Array<Array<{ x: number; y: number; z: number; visibility?: number }>>;
+          worldLandmarks: Array<Array<{ x: number; y: number; z: number; visibility?: number }>>;
         };
       } | null;
 
@@ -313,15 +314,27 @@ export default function CameraCapture({ onGestureUpdate, onInterpretation, onPos
             }
           }
           
-          // Detect pose
+          // Detect pose - capture both normalized landmarks and worldLandmarks
           let poseLandmarks: Landmark[] | null = null;
+          let worldLandmarks: Landmark[] | null = null;
           if (poseDetector?.detectForVideo) {
             const poseResult = poseDetector.detectForVideo(video, timestamp + 1);
+            // Capture normalized landmarks (0-1 range)
             if (poseResult?.landmarks?.[0]) {
               poseLandmarks = poseResult.landmarks[0].map(l => ({
                 x: l.x,
                 y: l.y,
                 z: l.z ?? 0,
+                visibility: l.visibility,
+              }));
+            }
+            // Capture world landmarks (3D world coordinates, origin at hip)
+            // This is CRITICAL for Kalidokit pose solving
+            if (poseResult?.worldLandmarks?.[0]) {
+              worldLandmarks = poseResult.worldLandmarks[0].map(l => ({
+                x: l.x,
+                y: l.y,
+                z: l.z,
                 visibility: l.visibility,
               }));
             }
@@ -331,6 +344,17 @@ export default function CameraCapture({ onGestureUpdate, onInterpretation, onPos
           setHandDetected(handLandmarks.length > 0);
           setPoseDetected(poseLandmarks !== null);
           
+          // Debug log detection status (every 60 frames ~2 sec)
+          if (frameCount % 60 === 0) {
+            console.log("Detection status:", {
+              frame: frameCount,
+              handsDetected: handLandmarks.length,
+              poseDetected: !!poseLandmarks,
+              worldLandmarksDetected: !!worldLandmarks,
+              handConfidence,
+            });
+          }
+          
           // Analyze body state
           let bodyState: BodyPoseState["bodyState"] | null = null;
           if (poseLandmarks) {
@@ -338,9 +362,11 @@ export default function CameraCapture({ onGestureUpdate, onInterpretation, onPos
           }
           
           // Create pose state for 3D avatar
+          // Include both normalized landmarks and world landmarks for proper Kalidokit solving
           if (poseLandmarks || handLandmarks.length > 0) {
             const poseState: BodyPoseState = {
               poseLandmarks,
+              worldLandmarks, // 3D world coordinates for Kalidokit
               leftHandLandmarks: handLandmarks[0]?.map(l => ({ x: l.x, y: l.y, z: l.z ?? 0 })) || null,
               rightHandLandmarks: handLandmarks[1]?.map(l => ({ x: l.x, y: l.y, z: l.z ?? 0 })) || null,
               bodyState: bodyState || {
@@ -408,6 +434,7 @@ export default function CameraCapture({ onGestureUpdate, onInterpretation, onPos
             if (frameCount % 30 === 0) {
               const status: string[] = [];
               if (poseLandmarks) status.push("Body");
+              if (worldLandmarks) status.push("3D");
               if (handLandmarks.length > 0) status.push(`${handLandmarks.length} hand${handLandmarks.length > 1 ? "s" : ""}`);
               if (bodyState?.isFallen) status.push("FALLEN");
               setDebugInfo(status.join(" + ") || "Scanning...");
@@ -591,6 +618,7 @@ export default function CameraCapture({ onGestureUpdate, onInterpretation, onPos
       const isFallen = tokens.includes("fallen") || tokens.includes("collapse");
       const demoPoseState: BodyPoseState = {
         poseLandmarks: null,
+        worldLandmarks: null, // No world landmarks in demo mode
         leftHandLandmarks: null,
         rightHandLandmarks: null,
         bodyState: {
